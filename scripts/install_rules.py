@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""把 i-have-adhd 用户沟通规则安装到任意目标项目根目录的 AGENTS.md。
+"""把 Axiom-reporter 用户沟通规则安装到任意目标项目根目录的 AGENTS.md。
 
 默认只预览，不写入；提供 --write 才真正修改。幂等：重复安装不产生重复内容，
 已存在的用户内容只追加不覆盖，修改前自动备份。退出码见 main()。
@@ -13,11 +13,14 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-BEGIN = "<!-- i-have-adhd:begin -->"
-END = "<!-- i-have-adhd:end -->"
+BEGIN = "<!-- Axiom-reporter:begin -->"
+END = "<!-- Axiom-reporter:end -->"
+# 旧版本安装器留下的标记；升级时原地替换，避免重复追加
+LEGACY_BEGIN = "<!-- i-have-adhd:begin -->"
+LEGACY_END = "<!-- i-have-adhd:end -->"
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 BLOCK_PATH = PROJECT_ROOT / "assets" / "agents-block.md"
-SKILL_SRC = PROJECT_ROOT / "skills" / "i-have-adhd" / "SKILL.md"
+SKILL_SRC = PROJECT_ROOT / "skills" / "Axiom-reporter" / "SKILL.md"
 
 
 def sha256_text(text: str) -> str:
@@ -34,15 +37,23 @@ def render(block: str) -> str:
     return f"{BEGIN}\n{block.strip()}\n{END}\n"
 
 
+def _find_block(text: str) -> tuple[int, int, str] | None:
+    """定位当前或旧版标记块，返回 (起始下标, 结束下标, 块内容)。"""
+    candidates = []
+    for b, e in ((BEGIN, END), (LEGACY_BEGIN, LEGACY_END)):
+        if b in text and e in text:
+            bi = text.index(b)
+            ei = text.index(e) + len(e)
+            if ei > bi:
+                inner = text[bi + len(b): text.index(e)]
+                candidates.append((bi, ei, inner.strip()))
+    return min(candidates, key=lambda c: c[0]) if candidates else None
+
+
 def extract_marked(text: str) -> str | None:
     """返回现有标记块内容（不含标记行）；无标记或标记不完整时返回 None。"""
-    if BEGIN not in text or END not in text:
-        return None
-    begin_idx = text.index(BEGIN) + len(BEGIN)
-    end_idx = text.index(END)
-    if end_idx < begin_idx:
-        return None
-    return text[begin_idx:end_idx].strip()
+    found = _find_block(text)
+    return found[2] if found else None
 
 
 def _backup(path: Path) -> Path:
@@ -79,14 +90,13 @@ def install(target: Path, *, write: bool = False, with_skill: bool = False) -> d
     # 1) 计算目标 AGENTS.md 的新内容
     if agents.exists():
         old = agents.read_text(encoding="utf-8")
-        marked = extract_marked(old)
-        if marked is not None:
-            if marked.strip() == block.strip():
+        found = _find_block(old)
+        if found is not None:
+            begin_idx, end_idx, inner = found
+            if inner == block.strip() and old[begin_idx: begin_idx + len(BEGIN)] == BEGIN:
                 result["agents_action"] = "unchanged"
                 new_text = old
             else:
-                begin_idx = old.index(BEGIN)
-                end_idx = old.index(END) + len(END)
                 suffix = old[end_idx:].lstrip("\n")
                 new_text = old[:begin_idx] + rendered.rstrip("\n") + ("\n" + suffix if suffix else "\n")
                 result["agents_action"] = "replace-marked-block"
@@ -99,7 +109,7 @@ def install(target: Path, *, write: bool = False, with_skill: bool = False) -> d
         result["agents_action"] = "create"
 
     # 2) 技能复制计划（可选）
-    skill_dst = target / ".codex" / "skills" / "i-have-adhd" / "SKILL.md"
+    skill_dst = target / ".codex" / "skills" / "Axiom-reporter" / "SKILL.md"
     if with_skill:
         result["skill_path"] = str(skill_dst)
         if skill_dst.exists() and skill_dst.read_text(encoding="utf-8") == SKILL_SRC.read_text(encoding="utf-8"):
@@ -154,11 +164,11 @@ def _print_result(r: dict) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="把 i-have-adhd 用户沟通规则写入目标项目根目录 AGENTS.md（默认预览，--write 才写入）"
+        description="把 Axiom-reporter 用户沟通规则写入目标项目根目录 AGENTS.md（默认预览，--write 才写入）"
     )
     parser.add_argument("target", nargs="?", default=".", help="目标项目路径，默认当前目录")
     parser.add_argument("--write", action="store_true", help="实际写入（默认只预览）")
-    parser.add_argument("--with-skill", action="store_true", help="同时复制 skills/i-have-adhd 到目标项目 .codex/skills/")
+    parser.add_argument("--with-skill", action="store_true", help="同时复制 skills/Axiom-reporter 到目标项目 .codex/skills/")
     args = parser.parse_args(argv)
 
     try:

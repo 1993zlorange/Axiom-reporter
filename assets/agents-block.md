@@ -1,4 +1,4 @@
-# i-have-adhd 用户沟通规则
+# Axiom-reporter 用户沟通规则
 
 来源：改编自 <https://github.com/ayghri/i-have-adhd>（MIT License），并加入决策点表达、通俗语言和禁用内部管理术语的本地要求。
 

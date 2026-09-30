@@ -1,4 +1,4 @@
-"""install_adhd_rules 的最小验证：创建、幂等、追加、替换、备份、预览、技能复制。"""
+"""install_rules 的最小验证：创建、幂等、追加、替换、备份、预览、技能复制。"""
 from __future__ import annotations
 
 import sys
@@ -9,7 +9,7 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
-import install_adhd_rules as mod  # noqa: E402
+import install_rules as mod  # noqa: E402
 
 
 class InstallTests(unittest.TestCase):
@@ -53,7 +53,7 @@ class InstallTests(unittest.TestCase):
         mod.install(self.target, write=True)
         text = agents.read_text(encoding="utf-8")
         self.assertNotIn("旧规则", text)
-        self.assertIn("i-have-adhd 用户沟通规则", text)
+        self.assertIn("Axiom-reporter 用户沟通规则", text)
         self.assertIn("前言", text)
         self.assertIn("结尾", text)
 
@@ -71,9 +71,21 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(r["agents_action"], "create")
         self.assertFalse(r["verified"])
 
+    def test_upgrades_legacy_marked_block_in_place(self):
+        agents = self.target / "AGENTS.md"
+        legacy = f"前言\n<!-- i-have-adhd:begin -->\n旧规则\n<!-- i-have-adhd:end -->\n结尾\n"
+        agents.write_text(legacy, encoding="utf-8")
+        mod.install(self.target, write=True)
+        text = agents.read_text(encoding="utf-8")
+        self.assertNotIn("i-have-adhd:begin", text)
+        self.assertNotIn("旧规则", text)
+        self.assertIn(mod.BEGIN, text)
+        self.assertIn("前言", text)
+        self.assertIn("结尾", text)
+
     def test_with_skill_copies_skill(self):
         r = mod.install(self.target, write=True, with_skill=True)
-        dst = self.target / ".codex" / "skills" / "i-have-adhd" / "SKILL.md"
+        dst = self.target / ".codex" / "skills" / "Axiom-reporter" / "SKILL.md"
         self.assertTrue(dst.is_file())
         self.assertEqual(
             dst.read_text(encoding="utf-8"),
@@ -85,7 +97,7 @@ class InstallTests(unittest.TestCase):
         """技能正文必须包含规则模板的全部标题，防止两份文件漂移。"""
         block = mod.read_block()
         skill = mod.SKILL_SRC.read_text(encoding="utf-8")
-        for heading in ("# i-have-adhd 用户沟通规则", "## 回答方式", "## 决策点表达", "## 语言和编码", "## 交付前检查"):
+        for heading in ("# Axiom-reporter 用户沟通规则", "## 回答方式", "## 决策点表达", "## 语言和编码", "## 交付前检查"):
             self.assertIn(heading, block)
             self.assertIn(heading, skill)
 

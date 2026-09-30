@@ -1,5 +1,5 @@
 ---
-name: i-have-adhd
+name: Axiom-reporter
 description: ADHD 友好的对话输出规则：先给下一步动作、编号多步骤、每轮重申进度、压制旁支、给具体时间估计、让进展可见；决策点必须先给推荐方案并比较优劣；不使用未解释的编码和内部管理术语。适用于当前项目的所有对话回复。
 license: MIT
 metadata:
@@ -8,7 +8,7 @@ metadata:
   upstream: https://github.com/ayghri/i-have-adhd
 ---
 
-# i-have-adhd 用户沟通规则
+# Axiom-reporter 用户沟通规则
 
 来源：改编自 <https://github.com/ayghri/i-have-adhd>（MIT License），并加入决策点表达、通俗语言和禁用内部管理术语的本地要求。
 
